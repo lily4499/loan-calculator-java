@@ -16,6 +16,7 @@ pipeline {
         stage('Build with Maven') {
             steps {
                 sh 'mvn clean package'
+                sh 'mv target/*.war target/loan-calculator.war' // Rename WAR to a fixed name
             }
         }
 
@@ -40,6 +41,8 @@ pipeline {
                                 /opt/tomcat/bin/shutdown.sh || true
                                 sleep 5
                                 /opt/tomcat/bin/startup.sh
+                                echo "Deployed loan-calculator.war"
+
                             '''
                         )
                     ],
@@ -49,6 +52,22 @@ pipeline {
         )
     }
 }
+
+         stage('Health Check') {
+            steps {
+                script {
+                    def response = sh(
+                        script: "curl -s -o /dev/null -w '%{http_code}' http://54.162.92.114:8080/loan-calculator/",
+                        returnStdout: true
+                    ).trim()
+                    if (response != "200") {
+                        error "App not reachable. Got HTTP ${response}"
+                    } else {
+                        echo "App deployed successfully! ✅"
+                    }
+                }
+            }
+        }
 
         stage('Notify via Slack') {
             steps {

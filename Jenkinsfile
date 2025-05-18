@@ -16,7 +16,13 @@ pipeline {
         stage('Build with Maven') {
             steps {
                 sh 'mvn clean package'
-                sh 'mv target/*.war target/loan-calculator.war' // Rename WAR to a fixed name
+                sh '''
+            for f in target/*.war; do
+                if [ "$f" != "target/loan-calculator.war" ]; then
+                    mv "$f" target/loan-calculator.war
+                fi
+            done
+        '''
             }
         }
 

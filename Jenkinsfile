@@ -33,30 +33,34 @@ pipeline {
         }
 
         stage('Deploy to Tomcat on EC2') {
-            steps {
-                sshPublisher(
-                    publishers: [
-                        sshPublisherDesc(
-                            configName: 'tomcat-ec2',
-                            transfers: [
-                                sshTransfer(
-                                    sourceFiles: 'target/loan-calculator.war',
-                                    removePrefix: 'target',
-                                    remoteDirectory: '/opt/tomcat/webapps/',
-                                    execCommand: '''
-                                        /opt/tomcat/bin/shutdown.sh || true
-                                        sleep 5
-                                        /opt/tomcat/bin/startup.sh
-                                        echo "Deployed loan-calculator.war"
-                                    '''
-                                )
-                            ],
-                            verbose: true
+    steps {
+        sshPublisher(
+            publishers: [
+                sshPublisherDesc(
+                    configName: 'tomcat-ec2',
+                    transfers: [
+                        sshTransfer(
+                            sourceFiles: 'target/loan-calculator.war',
+                            removePrefix: 'target',
+                            remoteDirectory: '/opt/tomcat/webapps/',
+                            execCommand: '''
+                                echo "[BEFORE RESTART] Deployed WARs:"
+                                ls -l /opt/tomcat/webapps/
+                                /opt/tomcat/bin/shutdown.sh || true
+                                sleep 5
+                                /opt/tomcat/bin/startup.sh
+                                echo "[AFTER RESTART] Deployed WARs:"
+                                ls -l /opt/tomcat/webapps/
+                            '''
                         )
-                    ]
+                    ],
+                    verbose: true
                 )
-            }
-        }
+            ]
+        )
+    }
+}
+
 
         stage('Health Check') {
             steps {

@@ -49,14 +49,14 @@ pipeline {
 
         stage('Notify via Slack') {
             steps {
-                slackSend(channel: '#ci-cd', message: "Build & deployment of ${APP_NAME} completed ✅", color: '#36a64f')
+                slackSend(channel: '#devops-project', message: "Build & deployment of ${APP_NAME} completed ✅", color: '#36a64f')
             }
         }
     }
 
     post {
         failure {
-            slackSend(channel: '#ci-cd', message: "Build failed for ${APP_NAME} ❌", color: '#FF0000')
+            slackSend(channel: '#devops-project', message: "Build failed for ${APP_NAME} ❌", color: '#FF0000')
         }
     }
 }

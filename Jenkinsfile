@@ -32,56 +32,62 @@ pipeline {
             }
         }
 
-        stage('Deploy to Tomcat on EC2') {
-    steps {
-        sshPublisher(
-            publishers: [
-                sshPublisherDesc(
-                    configName: 'tomcat-ec2',
-                    transfers: [
-                        sshTransfer(
-                            sourceFiles: 'target/loan-calculator.war',
-                            removePrefix: 'target',
-                            remoteDirectory: '/opt/tomcat/webapps/',
-                            execCommand: '''
-                                echo "[BEFORE RESTART] Deployed WARs:"
-                                ls -l /opt/tomcat/webapps/
-                                /opt/tomcat/bin/shutdown.sh || true
-                                sleep 5
-                                /opt/tomcat/bin/startup.sh
-                                echo "[AFTER RESTART] Deployed WARs:"
-                                ls -l /opt/tomcat/webapps/
-                            '''
+        stage('Deploy to EC2 Tomcat') {
+            steps {
+                sshPublisher(
+                    publishers: [
+                        sshPublisherDesc(
+                            configName: 'tomcat-ec2',  // defined in Jenkins > Manage Jenkins > Configure System
+                            transfers: [
+                                sshTransfer(
+                                    sourceFiles: 'target/loan-calculator.war',
+                                    removePrefix: 'target',
+                                    remoteDirectory: '/opt/tomcat/webapps',
+                                    execCommand: '''
+                                        echo "[Before Restart] Deployed apps:"
+                                        ls -l /opt/tomcat/webapps
+                                        echo "[Stopping Tomcat]"
+                                        /opt/tomcat/bin/shutdown.sh || true
+                                        sleep 5
+                                        echo "[Starting Tomcat]"
+                                        /opt/tomcat/bin/startup.sh
+                                        echo "[After Restart] Deployed apps:"
+                                        ls -l /opt/tomcat/webapps
+                                    '''
+                                )
+                            ],
+                            verbose: true
                         )
-                    ],
-                    verbose: true
+                    ]
                 )
-            ]
-        )
-    }
-}
-
+            }
+        }
 
         stage('Health Check') {
             steps {
                 script {
                     def retries = 5
                     def response = ""
+                    def success = false
+
                     for (int i = 0; i < retries; i++) {
                         response = sh(
                             script: "curl -s -o /dev/null -w '%{http_code}' http://${EC2_IP}:8080/loan-calculator/",
                             returnStdout: true
                         ).trim()
+
                         if (response == "200") {
-                            echo "App is up and running! ✅"
+                            echo "✅ App is up and reachable!"
+                            success = true
                             break
                         } else {
-                            echo "Waiting for app... (Attempt ${i + 1}/5) HTTP: ${response}"
+                            echo "Waiting for app... HTTP status: ${response} (Retry ${i + 1}/5)"
                             sleep 5
                         }
                     }
-                    if (response != "200") {
-                        error "App not reachable. Final HTTP status: ${response}"
+
+                    if (!success) {
+                        error "❌ Health check failed. Final HTTP status: ${response}"
                     }
                 }
             }
@@ -91,7 +97,7 @@ pipeline {
             steps {
                 slackSend(
                     channel: '#devops-project',
-                    message: "✅ Build & deployment of ${APP_NAME} completed successfully.",
+                    message: "✅ ${APP_NAME} deployed to EC2 Tomcat successfully.",
                     color: '#36a64f'
                 )
             }
@@ -102,7 +108,7 @@ pipeline {
         failure {
             slackSend(
                 channel: '#devops-project',
-                message: "❌ Build or deployment of ${APP_NAME} failed!",
+                message: "❌ ${APP_NAME} build or deployment failed.",
                 color: '#FF0000'
             )
         }

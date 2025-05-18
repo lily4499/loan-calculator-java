@@ -41,7 +41,7 @@ pipeline {
                             transfers: [
                                 sshTransfer(
                                     sourceFiles: 'target/loan-calculator.war',
-                                    removePrefix: 'target',
+                                    removePrefix: '',
                                     remoteDirectory: '/opt/tomcat/webapps',
                                     execCommand: '''
                                         echo "[Before Restart] Deployed apps:"

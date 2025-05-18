@@ -32,7 +32,7 @@ pipeline {
             }
         }
 
-        stage('Deploy to EC2 Tomcat') {
+       stage('Deploy to EC2 Tomcat') {
     steps {
         sshPublisher(
             publishers: [
@@ -41,32 +41,36 @@ pipeline {
                     transfers: [
                         sshTransfer(
                             sourceFiles: 'target/loan-calculator.war',
-                            remoteDirectory: '/opt/tomcat/webapps',
-                            flatten: true,           // ✅ avoids creating nested paths
-                            cleanRemote: false       // ✅ preserves all default Tomcat apps (no unwanted deletion)
+                            remoteDirectory: '/home/ec2-user',
+                            flatten: true,
+                            cleanRemote: false
                         )
                     ],
                     execCommand: '''
-                        echo "[BEFORE] Listing apps:"
-                        ls -l /opt/tomcat/webapps
+                        echo "[VERIFY] Uploaded WAR in /home/ec2-user:"
+                        ls -lh /home/ec2-user/loan-calculator.war || echo "WAR not found!"
 
-                        echo "[STOPPING Tomcat]"
+                        echo "[MOVING] to /opt/tomcat/webapps/"
+                        sudo mv /home/ec2-user/loan-calculator.war /opt/tomcat/webapps/
+
+                        echo "[RESTARTING TOMCAT]"
                         /opt/tomcat/bin/shutdown.sh || true
                         sleep 5
-
-                        echo "[STARTING Tomcat]"
                         /opt/tomcat/bin/startup.sh
-                        sleep 10  # give Tomcat time to unpack
+                        sleep 10
 
-                        echo "[AFTER] Listing apps:"
-                        ls -l /opt/tomcat/webapps
-                    ''',
-                    verbose: true
+                        echo "[VERIFY] Final Deployment State:"
+                        ls -lh /opt/tomcat/webapps/
+                        find /opt/tomcat/webapps -type d -name "loan-calculator"
+                    '''
                 )
-            ]
+            ],
+            verbose: true
         )
     }
 }
+
+
 
 
         stage('Health Check') {

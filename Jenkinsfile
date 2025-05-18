@@ -7,9 +7,9 @@ pipeline {
     }
 
     stages {
-        stage('Checkout') {
+         stage('Checkout Code') {
             steps {
-                git 'https://github.com/lili4499/loan-calculator-java.git'
+                git branch: 'main', url: 'https://github.com/lily4499/loan-calculator-java.git'
             }
         }
 

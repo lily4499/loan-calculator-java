@@ -32,12 +32,13 @@ pipeline {
             }
         }
 
-       stage('Deploy to EC2 Tomcat') {
+      stage('Deploy to EC2 Tomcat') {
     steps {
         sshPublisher(
             publishers: [
                 sshPublisherDesc(
                     configName: 'tomcat-ec2',
+                    verbose: true,     // ✅ Moved INSIDE sshPublisherDesc
                     transfers: [
                         sshTransfer(
                             sourceFiles: 'target/loan-calculator.war',
@@ -64,12 +65,10 @@ pipeline {
                         find /opt/tomcat/webapps -type d -name "loan-calculator"
                     '''
                 )
-            ],
-            verbose: true
+            ]
         )
     }
 }
-
 
 
 

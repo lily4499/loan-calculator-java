@@ -33,35 +33,41 @@ pipeline {
         }
 
         stage('Deploy to EC2 Tomcat') {
-            steps {
-                sshPublisher(
-                    publishers: [
-                        sshPublisherDesc(
-                            configName: 'tomcat-ec2',  // defined in Jenkins > Manage Jenkins > Configure System
-                            transfers: [
-                                sshTransfer(
-                                    sourceFiles: 'target/loan-calculator.war',
-                                    removePrefix: '',
-                                    remoteDirectory: '/opt/tomcat/webapps',
-                                    execCommand: '''
-                                        echo "[Before Restart] Deployed apps:"
-                                        ls -l /opt/tomcat/webapps
-                                        echo "[Stopping Tomcat]"
-                                        /opt/tomcat/bin/shutdown.sh || true
-                                        sleep 5
-                                        echo "[Starting Tomcat]"
-                                        /opt/tomcat/bin/startup.sh
-                                        echo "[After Restart] Deployed apps:"
-                                        ls -l /opt/tomcat/webapps
-                                    '''
-                                )
-                            ],
-                            verbose: true
+    steps {
+        sshPublisher(
+            publishers: [
+                sshPublisherDesc(
+                    configName: 'tomcat-ec2',
+                    transfers: [
+                        sshTransfer(
+                            sourceFiles: 'target/loan-calculator.war',
+                            remoteDirectory: '/opt/tomcat/webapps',
+                            flatten: true,           // ✅ avoids creating nested paths
+                            cleanRemote: false       // ✅ preserves all default Tomcat apps (no unwanted deletion)
                         )
-                    ]
+                    ],
+                    execCommand: '''
+                        echo "[BEFORE] Listing apps:"
+                        ls -l /opt/tomcat/webapps
+
+                        echo "[STOPPING Tomcat]"
+                        /opt/tomcat/bin/shutdown.sh || true
+                        sleep 5
+
+                        echo "[STARTING Tomcat]"
+                        /opt/tomcat/bin/startup.sh
+                        sleep 10  # give Tomcat time to unpack
+
+                        echo "[AFTER] Listing apps:"
+                        ls -l /opt/tomcat/webapps
+                    ''',
+                    verbose: true
                 )
-            }
-        }
+            ]
+        )
+    }
+}
+
 
         stage('Health Check') {
             steps {

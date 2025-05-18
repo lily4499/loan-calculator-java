@@ -26,26 +26,29 @@ pipeline {
         }
 
         stage('Deploy to Tomcat on EC2') {
-            steps {
-                sshPublisher(
-                    publishers: [
-                        sshPublisherDesc(
-                            configName: 'tomcat-ec2',
-                            transfers: [
-                                sshTransfer(
-                                    sourceFiles: '**/target/*.war',
-                                    remoteDirectory: '/opt/tomcat/webapps/',
-                                    removePrefix: 'target',
-                                    execCommand: '/opt/tomcat/bin/shutdown.sh; sleep 5; /opt/tomcat/bin/startup.sh'
-                                )
-                            ],
-                            usePromotionTimestamp: false,
-                            verbose: true
+    steps {
+        sshPublisher(
+            publishers: [
+                sshPublisherDesc(
+                    configName: 'tomcat-ec2',
+                    transfers: [
+                        sshTransfer(
+                            sourceFiles: 'target/loan-calculator.war',
+                            removePrefix: 'target',
+                            remoteDirectory: '/opt/tomcat/webapps/',
+                            execCommand: '''
+                                /opt/tomcat/bin/shutdown.sh || true
+                                sleep 5
+                                /opt/tomcat/bin/startup.sh
+                            '''
                         )
-                    ]
+                    ],
+                    verbose: true
                 )
-            }
-        }
+            ]
+        )
+    }
+}
 
         stage('Notify via Slack') {
             steps {
